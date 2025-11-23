@@ -8,7 +8,7 @@
 --
 -- YOUR TASK: Analyze this query, identify the bottlenecks, and optimize it.
 -- ============================================================================
-
+EXPLAIN 
 SELECT
    tm.*,
    tm.txn_id AS "tm.txnId",
