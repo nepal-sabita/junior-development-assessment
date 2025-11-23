@@ -18,7 +18,7 @@ INNER JOIN operators.transaction_master tm ON m.member_id = tm.acq_id
 WHERE tm.status = 'COMPLETED'
   AND tm.txn_date >= '2025-11-16'
   AND tm.txn_date < '2025-11-19'
-GROUP BY m.member_id, m.member_name  -- BUG: Missing DATE(tm.txn_date) here!
+GROUP BY m.member_id, m.member_name, DATE(tm.txn_date)  -- BUG: Missing DATE(tm.txn_date) here!
 ORDER BY settlement_date, total_amount DESC;
 
 /*
