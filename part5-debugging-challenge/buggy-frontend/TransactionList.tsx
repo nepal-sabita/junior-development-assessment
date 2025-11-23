@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { transactionService } from '../services/transactionService';
 import { Transaction } from '../types/transaction';
 
@@ -21,25 +21,46 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   
   // BUG 1: Missing cleanup for interval (memory leak)
   // BUG 2: Missing refreshInterval in dependency array
   useEffect(() => {
+    let isMounted = true; // to avoid setting state on unmounted component
     const fetchData = async () => {
+      try{
+        setLoading(true);
       const data = await transactionService.getTransactions({
         merchantId,
         page: 1,
         size: 100
       });
+      if (!isMounted){
       setTransactions(data.content);
+      setError(null);
+      }
+    } catch (err) {
+      if (isMounted){
+      setError('Failed to fetch transactions');
+      }
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+      }
+    }
     };
     
     fetchData();
     const interval = setInterval(fetchData, refreshInterval);
     
     // Missing cleanup:
-    // return () => clearInterval(interval);
-  }, [merchantId]); // BUG: refreshInterval missing from deps
+    return () => {
+      clearInterval(interval);
+    isMounted = false;
+    };
+    
+  }, [merchantId, refreshInterval]); // BUG: refreshInterval missing from deps
   
   // Filter transactions
   useEffect(() => {
@@ -51,12 +72,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   }, [searchTerm, transactions]);
   
   // BUG 3: Creating new NumberFormat instance on every render (performance)
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatAmount = useMemo(() => { // using use memo to avoid recreating the formatter on every render
+    const formatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
+      currency: 'USD',
+    });
+    return (amount: number) => formatter.format(amount);
+  }, []);
   
   // BUG 4: No error handling
   // BUG 5: No loading state
@@ -69,6 +91,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Search transactions..."
       />
+      {loading && <p>Loading transactions...</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       
       <table>
         <thead>

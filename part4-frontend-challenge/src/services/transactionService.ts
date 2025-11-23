@@ -47,7 +47,7 @@ export const getTransactions = async (
  * (Optional - for future enhancement)
  */
 export const getTransactionById = async (
-  txnId: number
+  _txnId: number // was unused and caused the issue in docker composed
 ): Promise<any> => {
   // TODO: Implement if needed
   throw new Error('Not implemented');
