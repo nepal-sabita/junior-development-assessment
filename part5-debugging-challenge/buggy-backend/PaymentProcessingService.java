@@ -37,8 +37,8 @@ public class PaymentProcessingService {
                 }
                 
                 // BUG 1: Non-thread-safe operation on shared mutable state
-                totalProcessed = totalProcessed.add(payment.getAmount());
-                
+                synchronized(this) {
+                totalProcessed = totalProcessed.add(payment.getAmount());}
                 // Process payment
                 payment.setStatus("COMPLETED");
                 paymentRepository.update(payment);
@@ -49,6 +49,7 @@ public class PaymentProcessingService {
             } catch (Exception e) {
                 // BUG 2: Failed status set but never persisted to database
                 payment.setStatus("FAILED");
+                paymentRepository.update(payment); // solves the issue related to not adding to db
                 // Note: Not saving failed status to DB
             }
         });
